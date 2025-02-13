@@ -212,21 +212,35 @@ class Claude3Evaluator(BaseEvaluator):
         passed = False
         result = Results.MAX_TURNS_REACHED.value
         reasoning = ""
-
+        print (f"__________________\n* Init test: {self.test.name}\n")
         while self.conversation.turns < self.test.max_turns:
             if self.conversation.turns == 0:
                 # start conversation
                 if self.test.initial_prompt:
                     user_input = self.test.initial_prompt
                 else:
+
                     user_input = self._generate_initial_prompt()
+                    n = 0
+                    while user_input is None and n < 4:
+                        print(f"ERROR! generate_initial_prompt, turns: {self.conversation.turns}\n")
+                        user_input = self._generate_initial_prompt()
+                        n+=1
             else:
                 # generate next user response
                 user_input = self._generate_user_response()
+                n = 0
+                while user_input is None and n < 4:
+                    print("ERROR! generate_user_response \n")
+                    user_input = self._generate_user_response()
+                    n+=1
 
             # add turn to the conversation
+            if user_input is None:
+                print("ERROR! Please repeat\n")
+                user_input = "Please repeat your response in the same language."
             self.conversation.add_turn(user_input, self._invoke_target(user_input))
-
+            print(f"-> Conversation turn {self.conversation.turns}: \n {self.conversation.messages[-2][0]}: {self.conversation.messages[-2][1]}\n {self.conversation.messages[-1][0]}: {self.conversation.messages[-1][1]}")
             # get test status
             test_status = self._generate_test_status()
             if test_status == TestStatusCategories.ALL_STEPS_ATTEMPTED:
