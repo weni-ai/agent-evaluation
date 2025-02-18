@@ -7,7 +7,6 @@ import os
 from datetime import datetime, timezone
 from typing import Optional
 
-_TRACE_DIR = "agenteval_traces"
 
 
 class Trace:
@@ -24,7 +23,7 @@ class Trace:
 
     """
 
-    def __init__(self, test_name: str, work_dir: str):
+    def __init__(self, test_name: str, work_dir: str, script_name: str = "agenteval.yaml"):
         """
         Initialize the trace handler.
 
@@ -33,7 +32,7 @@ class Trace:
             work_dir (str): Directory to store the trace.
         """
         self.test_name = test_name
-        self.trace_dir = os.path.join(work_dir, _TRACE_DIR)
+        self.trace_dir = os.path.join(work_dir, f"{os.path.splitext(script_name)[0]}_traces")
         self.start_time = None
         self.end_time = None
         self.steps = []

@@ -23,7 +23,6 @@ from agenteval.summary import create_markdown_summary
 from agenteval.targets import TargetFactory
 from agenteval.test import TestSuite
 
-_PLAN_FILE_NAME = "agenteval.yml"
 
 _INIT_PLAN = {
     "evaluator": {"model": "claude-3"},
@@ -57,17 +56,28 @@ class Plan(BaseModel):
     config: dict
 
     @classmethod
-    def load(cls, plan_dir: Optional[str] = None) -> Plan:
+    def load(cls, plan_dir: Optional[str] = None, plan_file: str = "agenteval.yml") -> Plan:
         """Loads the test plan configurations from YAML.
 
         Args:
             plan_dir (Optional[str]): The directory containing the test plan.
                 If `None`, the current working directory will be used.
+            plan_file (str): The name of the plan file to load.
 
         Returns:
             Plan: A `Plan` instance containing the loaded test plan configurations.
         """
-        plan_path = os.path.join(plan_dir or os.getcwd(), _PLAN_FILE_NAME)
+        if plan_dir:
+            # Se plan_dir é um caminho absoluto, usa ele diretamente
+            # Se é relativo, combina com o diretório atual
+            if os.path.isabs(plan_dir):
+                # Se o último componente do caminho é um arquivo, usa o diretório pai
+                if os.path.isfile(plan_dir):
+                    plan_dir = os.path.dirname(plan_dir)
+            else:
+                plan_dir = os.path.join(os.getcwd(), plan_dir)
+        
+        plan_path = os.path.join(plan_dir or os.getcwd(), plan_file)
         plan = cls._load_yaml(plan_path)
         return cls(config=plan)
 
@@ -77,7 +87,7 @@ class Plan(BaseModel):
             return yaml.safe_load(stream)
 
     @staticmethod
-    def init_plan(plan_dir: Optional[str] = None) -> str:
+    def init_plan(plan_dir: Optional[str] = None, plan_file: str = "agenteval.yml") -> str:
         """Initializes a new test plan configuration YAML file.
 
         Args:
@@ -87,7 +97,7 @@ class Plan(BaseModel):
         Returns:
             str: The path to the YAML file.
         """
-        plan_path = os.path.join(plan_dir or os.getcwd(), _PLAN_FILE_NAME)
+        plan_path = os.path.join(plan_dir or os.getcwd(), plan_file)
 
         # check if plan exists
         if os.path.exists(plan_path):
@@ -116,6 +126,7 @@ class Plan(BaseModel):
         num_threads: Optional[int] = None,
         work_dir: Optional[str] = None,
         filter: Optional[str] = None,
+        plan_file: str = "agenteval.yml",
     ):
         """Run the test plan.
 
@@ -124,10 +135,15 @@ class Plan(BaseModel):
             num_threads (Optional[int]): Number of threads used to run tests concurrently.
                 If `None`, the thread count will be set to the number of tests (up to a maximum of `45` threads).
             work_dir (Optional[str]): The directory where the test result and trace will be
-                generated. If `None`, the assets will be saved to the current working directory.
+                generated. If `None` and plan_dir was provided, plan_dir will be used.
+                Otherwise, assets will be saved to the current working directory.
             filter (Optional[str]): Specifies the test(s) to run, where multiple tests should be seperated using a comma.
                 If `None`, all tests will be run.
+            plan_file (str): The name of the plan file being used.
         """
+        # work_dir já vem do CLI com a lógica de usar plan_dir se work_dir for None
+
+        self._plan_file = plan_file
         self._setup_run(filter, work_dir, num_threads)
 
         log_run_start(verbose, self._num_tests, self._num_threads)
@@ -157,6 +173,7 @@ class Plan(BaseModel):
             self._num_tests,
             self._test_suite.tests,
             list(self._results.values()),
+            self._plan_file,
         )
 
         if fail_count:
@@ -196,6 +213,7 @@ class Plan(BaseModel):
             test=test,
             target=target,
             work_dir=self._work_dir,
+            script_name=os.path.splitext(self._plan_file)[0],
         )
 
         result = evaluator.run()

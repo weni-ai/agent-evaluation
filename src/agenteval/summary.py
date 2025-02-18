@@ -17,6 +17,7 @@ def create_markdown_summary(
     num_tests: int,
     tests: list[Test],
     test_results: list[TestResult],
+    plan_file: str = "agenteval.yml"
 ):
     """
     Create a Markdown summary of the test results.
@@ -25,19 +26,26 @@ def create_markdown_summary(
     provided tests and test results.
 
     The summary is then written to a file in the specified working directory.
+    The summary file name will be based on the plan file name (e.g., if plan_file
+    is 'faq_test.yml', the summary will be 'faq_test_summary.md').
 
     Args:
         work_dir (str): The directory where the summary file will be created.
+            This will be the same as plan_dir if no work_dir was specified.
         pass_count (int): The number of tests that passed.
         num_tests (int): The total number of tests.
         tests (list[Test]): A list of tests.
         test_results (list[TestResult]): A list of test results.
+        plan_file (str): The name of the plan file. Used to generate the summary file name.
 
     Returns:
         None
     """
     template = jinja_env.get_template(os.path.join(_TEMPLATE_ROOT, _TEMPLATE_FILE_NAME))
-    summary_path = os.path.join(work_dir, os.path.splitext(_TEMPLATE_FILE_NAME)[0])
+    
+    # Pega o nome do arquivo yml sem a extensão
+    base_name = os.path.splitext(plan_file)[0]
+    summary_path = os.path.join(work_dir, f"{base_name}_summary.md")
 
     metrics = {"pass_rate": calculate_pass_rate_metric(pass_count, num_tests)}
 

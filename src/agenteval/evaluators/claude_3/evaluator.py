@@ -23,6 +23,16 @@ _PROMPT_TEMPLATE_NAMES = [
     "generate_evaluation",
 ]
 
+BLUE = '\033[94m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+RESET = '\033[0m'
+BG_MAGENTA = '\033[45m'
+BG_CYAN = '\033[46m'
+BOLD = '\033[1m'
+UNDERLINE = '\033[4m'
+
 # enable backwards-compatible StrEnum
 try:
     from enum import StrEnum
@@ -212,7 +222,7 @@ class Claude3Evaluator(BaseEvaluator):
         passed = False
         result = Results.MAX_TURNS_REACHED.value
         reasoning = ""
-        print (f"__________________\n* Init test: {self.test.name}\n")
+        print(f"{GREEN}__________________\n* Init test: {self.test.name}{RESET}")
         while self.conversation.turns < self.test.max_turns:
             if self.conversation.turns == 0:
                 # start conversation
@@ -223,7 +233,7 @@ class Claude3Evaluator(BaseEvaluator):
                     user_input = self._generate_initial_prompt()
                     n = 0
                     while user_input is None and n < 4:
-                        print(f"ERROR! generate_initial_prompt, turns: {self.conversation.turns}\n")
+                        print(f"{BOLD}{YELLOW}WARNING: Falha ao gerar prompt inicial. Tentativa {n+1}/4. Turns: {self.conversation.turns}{RESET}")
                         user_input = self._generate_initial_prompt()
                         n+=1
             else:
@@ -231,16 +241,20 @@ class Claude3Evaluator(BaseEvaluator):
                 user_input = self._generate_user_response()
                 n = 0
                 while user_input is None and n < 4:
-                    print("ERROR! generate_user_response \n")
+                    print(f"{BOLD}{YELLOW}WARNING: Falha ao gerar resposta do usuário. Tentativa {n+1}/4. Turns: {self.conversation.turns}{RESET}")
                     user_input = self._generate_user_response()
                     n+=1
 
             # add turn to the conversation
             if user_input is None:
-                print("ERROR! Please repeat\n")
+                print(f"{BOLD}{RED}ERROR: Falha ao gerar resposta do usuário. Tentativa {n+1}/4. Turns: {self.conversation.turns}{RESET}")
                 user_input = "Please repeat your response in the same language."
+            
             self.conversation.add_turn(user_input, self._invoke_target(user_input))
-            print(f"-> Conversation turn {self.conversation.turns}: \n {self.conversation.messages[-2][0]}: {self.conversation.messages[-2][1]}\n {self.conversation.messages[-1][0]}: {self.conversation.messages[-1][1]}")
+            
+            print(f" \n{BLUE}-> Conversation turn {BOLD}{self.conversation.turns}: {RESET}")
+                         
+            print(f"{BG_CYAN}{self.conversation.messages[-2][0]}:{RESET} {self.conversation.messages[-2][1]}\n{BG_MAGENTA}{self.conversation.messages[-1][0]}:{RESET} {self.conversation.messages[-1][1]}")
             # get test status
             test_status = self._generate_test_status()
             if test_status == TestStatusCategories.ALL_STEPS_ATTEMPTED:

@@ -23,7 +23,7 @@ class EvaluatorFactory(BaseModel):
 
     config: dict
 
-    def create(self, test: Test, target: BaseTarget, work_dir: str) -> BaseEvaluator:
+    def create(self, test: Test, target: BaseTarget, work_dir: str, script_name: str) -> BaseEvaluator:
         """Create an instance of the evaluator class specified in the configuration.
 
         Args:
@@ -41,6 +41,7 @@ class EvaluatorFactory(BaseModel):
             test=test,
             target=target,
             work_dir=work_dir,
+            script_name=script_name,
             **{k: v for k, v in self.config.items() if k != "model"}
         )
 

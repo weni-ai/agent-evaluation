@@ -37,6 +37,7 @@ class BaseEvaluator(ABC):
         test: Test,
         target: BaseTarget,
         work_dir: str,
+        script_name: str,
         model_id: str,
         provisioned_throughput_arn: Optional[str] = None,
         aws_profile: Optional[str] = None,
@@ -61,7 +62,7 @@ class BaseEvaluator(ABC):
         self.test = test
         self.target = target
         self.conversation = Conversation()
-        self.trace = Trace(work_dir=work_dir, test_name=test.name)
+        self.trace = Trace(test_name=test.name, work_dir=work_dir, script_name=script_name)
         self.test_result = None
         self.input_token_count = 0
         self.output_token_count = 0

@@ -22,6 +22,7 @@ def validate_directory(ctx, param, value):
             raise click.BadParameter(f"{value} is not a directory")
         if not os.access(value, os.R_OK) or not os.access(value, os.W_OK):
             raise click.BadParameter(f"No read/write permissions for {value}")
+    return value
 
 
 @click.group()
@@ -34,12 +35,19 @@ def cli():
     "--plan-dir",
     type=str,
     required=False,
-    help="The directory to store the test plan. If a directory is not provided, the test plan will be saved to the current working directory.",
+    help="The directory to store the test plan. If not provided, the test plan will be saved to the current working directory.",
     callback=validate_directory,
 )
-def init(plan_dir: Optional[str]):
+@click.option(
+    "--plan-file",
+    type=str,
+    default="agenteval.yml",
+    required=False,
+    help="The name of the test plan file. Defaults to 'agenteval.yml'.",
+)
+def init(plan_dir: Optional[str], plan_file: str):
     try:
-        Plan.init_plan(plan_dir)
+        Plan.init_plan(plan_dir, plan_file)
     except FileExistsError:
         exit(ExitCode.PLAN_ALREADY_EXISTS.value)
 
@@ -57,6 +65,13 @@ def init(plan_dir: Optional[str]):
     required=False,
     help="The directory where the test plan is stored. If a directory is not provided, the test plan will be read from the current working directory.",
     callback=validate_directory,
+)
+@click.option(
+    "--plan-file",
+    type=str,
+    default="agenteval.yml",
+    required=False,
+    help="The name of the test plan file. Defaults to 'agenteval.yml'.",
 )
 @click.option(
     "--verbose",
@@ -81,14 +96,21 @@ def init(plan_dir: Optional[str]):
 def run(
     filter: Optional[str],
     plan_dir: Optional[str],
+    plan_file: str,
     verbose: bool,
     num_threads: Optional[int],
     work_dir: Optional[str],
 ):
     try:
-        plan = Plan.load(plan_dir)
+        plan = Plan.load(plan_dir, plan_file)
+        work_dir = work_dir or plan_dir
+        
         plan.run(
-            verbose=verbose, num_threads=num_threads, work_dir=work_dir, filter=filter
+            verbose=verbose,
+            num_threads=num_threads,
+            work_dir=work_dir,
+            filter=filter,
+            plan_file=plan_file,
         )
 
     except TestFailureError:
